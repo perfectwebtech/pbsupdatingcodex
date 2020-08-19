@@ -1,8 +1,6 @@
-# xtream-codes-decoded
+# pbs code getting updated 
 
-**The obfuscation was removed by**: [https://github.com/tweakunwanted](https://github.com/tweakunwanted)
 
-**Base code source:** https://github.com/tweakunwanted/OpenXC-Main
 
 I'm cleaning up all the code by renaming all classes, functions and variables feel free to help.
 
