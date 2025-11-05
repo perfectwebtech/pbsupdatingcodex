@@ -1,0 +1,135 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: auth-secrets
+  namespace: iptv-platform
+type: Opaque
+stringData:
+  JWT_SECRET: "change_me_to_a_very_long_random_string_at_least_32_characters"
+  DB_PASSWORD: "change_me_in_production"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-service
+  namespace: iptv-platform
+  labels:
+    app: auth-service
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: auth-service
+  template:
+    metadata:
+      labels:
+        app: auth-service
+    spec:
+      containers:
+      - name: auth-service
+        image: iptv-auth-service:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 50051
+          name: grpc
+        - containerPort: 8080
+          name: http
+        env:
+        - name: GRPC_PORT
+          value: "50051"
+        - name: HTTP_PORT
+          value: "8080"
+        - name: ENVIRONMENT
+          value: "production"
+        - name: DB_HOST
+          value: "postgres"
+        - name: DB_PORT
+          value: "5432"
+        - name: DB_USER
+          value: "iptv_user"
+        - name: DB_NAME
+          value: "iptv_platform"
+        - name: DB_SSLMODE
+          value: "disable"
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: auth-secrets
+              key: DB_PASSWORD
+        - name: REDIS_HOST
+          value: "redis"
+        - name: REDIS_PORT
+          value: "6379"
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: auth-secrets
+              key: JWT_SECRET
+        - name: JWT_ACCESS_TTL
+          value: "3600"
+        - name: JWT_REFRESH_TTL
+          value: "2592000"
+        - name: JWT_ISSUER
+          value: "iptv-platform"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-service
+  namespace: iptv-platform
+spec:
+  selector:
+    app: auth-service
+  ports:
+  - name: grpc
+    port: 50051
+    targetPort: 50051
+  - name: http
+    port: 8080
+    targetPort: 8080
+  type: ClusterIP
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: auth-service-hpa
+  namespace: iptv-platform
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: auth-service
+  minReplicas: 3
+  maxReplicas: 20
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80

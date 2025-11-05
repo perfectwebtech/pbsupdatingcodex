@@ -1,0 +1,164 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: iptv-postgres
+    environment:
+      POSTGRES_DB: iptv_platform
+      POSTGRES_USER: iptv_user
+      POSTGRES_PASSWORD: dev_password_123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - iptv-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U iptv_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: iptv-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - iptv-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # Authentication Service (Go)
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+    container_name: iptv-auth-service
+    ports:
+      - "50051:50051"  # gRPC
+      - "8080:8080"     # HTTP
+    environment:
+      GRPC_PORT: 50051
+      HTTP_PORT: 8080
+      ENVIRONMENT: development
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: iptv_user
+      DB_PASSWORD: dev_password_123
+      DB_NAME: iptv_platform
+      DB_SSLMODE: disable
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: dev_secret_change_in_production_32_chars
+      JWT_ACCESS_TTL: 3600
+      JWT_REFRESH_TTL: 2592000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - iptv-network
+    restart: unless-stopped
+
+  # Streaming API Gateway (Go)
+  streaming-gateway:
+    build:
+      context: ./streaming-gateway
+      dockerfile: Dockerfile
+    container_name: iptv-streaming-gateway
+    ports:
+      - "8000:8000"
+    environment:
+      HTTP_PORT: 8000
+      ENVIRONMENT: development
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: iptv_user
+      DB_PASSWORD: dev_password_123
+      DB_NAME: iptv_platform
+      DB_SSLMODE: disable
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: dev_secret_change_in_production_32_chars
+      GEOIP_DATABASE_PATH: /usr/share/GeoIP/GeoLite2-City.mmdb
+      SEGMENT_DURATION: 10
+      BUFFER_SIZE: 8192
+      MAX_BITRATE: 8000000
+      CDN_ENABLED: false
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    networks:
+      - iptv-network
+    restart: unless-stopped
+
+  # Real-Time WebSocket Server (Deno)
+  realtime-ws:
+    build:
+      context: ./realtime-ws
+      dockerfile: Dockerfile
+    container_name: iptv-realtime-ws
+    ports:
+      - "8001:8001"
+    environment:
+      PORT: 8001
+      HOST: 0.0.0.0
+      LOG_LEVEL: info
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: iptv_user
+      DB_PASSWORD: dev_password_123
+      DB_NAME: iptv_platform
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: dev_secret_change_in_production_32_chars
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - iptv-network
+    restart: unless-stopped
+
+  # Nginx Load Balancer (Optional for local development)
+  nginx:
+    image: nginx:alpine
+    container_name: iptv-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+    depends_on:
+      - auth-service
+      - streaming-gateway
+      - realtime-ws
+    networks:
+      - iptv-network
+    restart: unless-stopped
+
+networks:
+  iptv-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local

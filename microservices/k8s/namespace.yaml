@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: iptv-platform
+  labels:
+    name: iptv-platform
+    environment: production

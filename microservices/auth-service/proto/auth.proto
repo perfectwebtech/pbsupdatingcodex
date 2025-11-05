@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package auth;
+
+option go_package = "github.com/iptv-platform/auth-service/proto";
+
+service AuthService {
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse);
+  rpc RefreshToken(RefreshTokenRequest) returns (LoginResponse);
+  rpc Logout(LogoutRequest) returns (LogoutResponse);
+}
+
+message LoginRequest {
+  string username = 1;
+  string password = 2;
+  string device_id = 3;
+}
+
+message LoginResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+  string token_type = 3;
+  int64 expires_in = 4;
+  User user = 5;
+}
+
+message ValidateTokenRequest {
+  string token = 1;
+}
+
+message ValidateTokenResponse {
+  bool valid = 1;
+  User user = 2;
+}
+
+message RefreshTokenRequest {
+  string refresh_token = 1;
+}
+
+message LogoutRequest {
+  string refresh_token = 1;
+}
+
+message LogoutResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message User {
+  int64 id = 1;
+  string username = 2;
+  string email = 3;
+  int32 max_connections = 4;
+  bool is_trial = 5;
+  bool is_active = 6;
+}
