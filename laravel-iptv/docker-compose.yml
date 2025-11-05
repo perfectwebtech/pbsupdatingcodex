@@ -1,0 +1,127 @@
+version: '3.8'
+
+services:
+  # PHP-FPM Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: iptv-app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html
+      - ./storage/app:/var/www/html/storage/app
+      - /var/streams:/var/streams
+      - /var/archives:/var/archives
+    environment:
+      - APP_ENV=${APP_ENV}
+      - APP_DEBUG=${APP_DEBUG}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    networks:
+      - iptv-network
+    depends_on:
+      - postgres
+      - redis
+
+  # Nginx Web Server
+  nginx:
+    image: nginx:alpine
+    container_name: iptv-nginx
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+      - "8443:443"
+    volumes:
+      - ./:/var/www/html
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d
+      - /var/streams:/var/streams
+    networks:
+      - iptv-network
+    depends_on:
+      - app
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: iptv-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${DB_DATABASE}
+      - POSTGRES_USER=${DB_USERNAME}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - iptv-network
+
+  # Redis Cache & Queue
+  redis:
+    image: redis:7-alpine
+    container_name: iptv-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - iptv-network
+
+  # Queue Worker
+  queue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: iptv-queue
+    restart: unless-stopped
+    command: php artisan queue:work --sleep=3 --tries=3 --max-time=3600
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html
+    environment:
+      - APP_ENV=${APP_ENV}
+      - DB_HOST=postgres
+      - REDIS_HOST=redis
+    networks:
+      - iptv-network
+    depends_on:
+      - app
+      - redis
+
+  # Scheduler
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: iptv-scheduler
+    restart: unless-stopped
+    command: sh -c "while true; do php artisan schedule:run --verbose --no-interaction & sleep 60; done"
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html
+    environment:
+      - APP_ENV=${APP_ENV}
+      - DB_HOST=postgres
+      - REDIS_HOST=redis
+    networks:
+      - iptv-network
+    depends_on:
+      - app
+
+networks:
+  iptv-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  redis-data:
