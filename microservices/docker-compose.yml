@@ -135,6 +135,62 @@ services:
       - iptv-network
     restart: unless-stopped
 
+  # Transcoding Service (Rust)
+  transcoding-service:
+    build:
+      context: ./transcoding-service
+      dockerfile: Dockerfile
+    container_name: iptv-transcoding-service
+    ports:
+      - "8002:8002"
+    environment:
+      SERVER__PORT: 8002
+      SERVER__WORKERS: 4
+      DATABASE__HOST: postgres
+      DATABASE__PORT: 5432
+      DATABASE__USERNAME: iptv_user
+      DATABASE__PASSWORD: dev_password_123
+      DATABASE__DATABASE: iptv_platform
+      REDIS__HOST: redis
+      REDIS__PORT: 6379
+      JWT__SECRET: dev_secret_change_in_production_32_chars
+      RUST_LOG: info
+    volumes:
+      - transcoding_data:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - iptv-network
+    restart: unless-stopped
+
+  # ML Recommendation Engine (Python)
+  ml-recommendation:
+    build:
+      context: ./ml-recommendation
+      dockerfile: Dockerfile
+    container_name: iptv-ml-recommendation
+    ports:
+      - "8003:8003"
+    environment:
+      PORT: 8003
+      DATABASE_URL: postgresql+asyncpg://iptv_user:dev_password_123@postgres:5432/iptv_platform
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: dev_secret_change_in_production_32_chars
+    volumes:
+      - ml_models:/app/models
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - iptv-network
+    restart: unless-stopped
+
   # Nginx Load Balancer (Optional for local development)
   nginx:
     image: nginx:alpine
@@ -149,6 +205,8 @@ services:
       - auth-service
       - streaming-gateway
       - realtime-ws
+      - transcoding-service
+      - ml-recommendation
     networks:
       - iptv-network
     restart: unless-stopped
@@ -161,4 +219,8 @@ volumes:
   postgres_data:
     driver: local
   redis_data:
+    driver: local
+  transcoding_data:
+    driver: local
+  ml_models:
     driver: local

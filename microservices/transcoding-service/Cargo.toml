@@ -1,0 +1,58 @@
+[package]
+name = "transcoding-service"
+version = "1.0.0"
+edition = "2021"
+authors = ["IPTV Platform Team"]
+
+[dependencies]
+# Web framework
+actix-web = "4.5"
+actix-rt = "2.9"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Database
+tokio-postgres = "0.7"
+deadpool-postgres = "0.12"
+
+# Redis
+redis = { version = "0.24", features = ["tokio-comp", "connection-manager"] }
+
+# FFmpeg bindings
+ffmpeg-next = "6.1"
+
+# Async runtime
+tokio = { version = "1.36", features = ["full"] }
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Configuration
+config = "0.14"
+dotenv = "0.15"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# UUID
+uuid = { version = "1.7", features = ["v4", "serde"] }
+
+# Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# Metrics
+prometheus = "0.13"
+
+# JWT
+jsonwebtoken = "9.2"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
