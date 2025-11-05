@@ -11,6 +11,7 @@ import (
 type UserRepository interface {
 	GetByID(ctx context.Context, id int64) (*model.User, error)
 	GetByUsername(ctx context.Context, username string) (*model.User, error)
+	GetByEmail(ctx context.Context, email string) (*model.User, error)
 	Create(ctx context.Context, user *model.User) error
 	Update(ctx context.Context, user *model.User) error
 	UpdateLastLogin(ctx context.Context, userID int64) error
@@ -97,6 +98,42 @@ func (r *userRepository) GetByUsername(ctx context.Context, username string) (*m
 	return user, nil
 }
 
+func (r *userRepository) GetByEmail(ctx context.Context, email string) (*model.User, error) {
+	query := `
+		SELECT id, username, password, email, package_id, max_connections,
+		       is_trial, is_active, admin_enabled, expires_at,
+		       created_at, updated_at, last_login_at
+		FROM users
+		WHERE email = $1 AND deleted_at IS NULL
+	`
+
+	user := &model.User{}
+	err := r.db.QueryRowContext(ctx, query, email).Scan(
+		&user.ID,
+		&user.Username,
+		&user.Password,
+		&user.Email,
+		&user.PackageID,
+		&user.MaxConnections,
+		&user.IsTrial,
+		&user.IsActive,
+		&user.AdminEnabled,
+		&user.ExpiresAt,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+		&user.LastLoginAt,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, ErrUserNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
 func (r *userRepository) Create(ctx context.Context, user *model.User) error {
 	query := `
 		INSERT INTO users (username, password, email, package_id, max_connections,
@@ -126,16 +163,17 @@ func (r *userRepository) Create(ctx context.Context, user *model.User) error {
 func (r *userRepository) Update(ctx context.Context, user *model.User) error {
 	query := `
 		UPDATE users
-		SET username = $1, email = $2, package_id = $3, max_connections = $4,
-		    is_trial = $5, is_active = $6, admin_enabled = $7, expires_at = $8,
-		    updated_at = $9
-		WHERE id = $10
+		SET username = $1, password = $2, email = $3, package_id = $4, max_connections = $5,
+		    is_trial = $6, is_active = $7, admin_enabled = $8, expires_at = $9,
+		    updated_at = $10
+		WHERE id = $11
 	`
 
 	_, err := r.db.ExecContext(
 		ctx,
 		query,
 		user.Username,
+		user.Password,
 		user.Email,
 		user.PackageID,
 		user.MaxConnections,

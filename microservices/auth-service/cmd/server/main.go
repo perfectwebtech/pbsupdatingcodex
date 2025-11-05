@@ -76,7 +76,7 @@ func main() {
 	}
 
 	// Start HTTP gateway for REST API
-	go startHTTPGateway(cfg.Server.HTTPPort, logger)
+	go startHTTPGateway(cfg.Server.HTTPPort, cfg, authService, logger)
 
 	// Graceful shutdown
 	go func() {
@@ -118,7 +118,8 @@ func loggingInterceptor(logger *zap.Logger) grpc.UnaryServerInterceptor {
 	}
 }
 
-func startHTTPGateway(port int, logger *zap.Logger) {
+func startHTTPGateway(port int, cfg *config.Config, authService *service.AuthService, logger *zap.Logger) {
+	httpHandler := handler.NewHTTPHandler(authService, logger)
 	mux := http.NewServeMux()
 
 	// Health check endpoint
@@ -131,8 +132,22 @@ func startHTTPGateway(port int, logger *zap.Logger) {
 	// Metrics endpoint (Prometheus)
 	mux.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
 		// TODO: Implement Prometheus metrics
+		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("# Auth service metrics\n"))
 	})
+
+	// Authentication API endpoints
+	mux.HandleFunc("/api/v1/auth/register", httpHandler.EnableCORS(httpHandler.Register))
+	mux.HandleFunc("/api/v1/auth/login", httpHandler.EnableCORS(httpHandler.Login))
+	mux.HandleFunc("/api/v1/auth/validate", httpHandler.EnableCORS(httpHandler.ValidateToken))
+	mux.HandleFunc("/api/v1/auth/refresh", httpHandler.EnableCORS(httpHandler.RefreshToken))
+	mux.HandleFunc("/api/v1/auth/logout", httpHandler.EnableCORS(httpHandler.Logout))
+	mux.HandleFunc("/api/v1/auth/me", httpHandler.EnableCORS(httpHandler.GetCurrentUser))
+	mux.HandleFunc("/api/v1/auth/profile", httpHandler.EnableCORS(httpHandler.UpdateProfile))
+	mux.HandleFunc("/api/v1/auth/password", httpHandler.EnableCORS(httpHandler.ChangePassword))
+	mux.HandleFunc("/api/v1/auth/forgot", httpHandler.EnableCORS(httpHandler.ForgotPassword))
+	mux.HandleFunc("/api/v1/auth/reset", httpHandler.EnableCORS(httpHandler.ResetPassword))
 
 	address := fmt.Sprintf(":%d", port)
 	logger.Info("HTTP gateway started", zap.String("address", address))
