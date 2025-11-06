@@ -1,0 +1,420 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop, staging ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  GO_VERSION: '1.21'
+  NODE_VERSION: '18'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # ============================================================================
+  # Code Quality & Linting
+  # ============================================================================
+  lint:
+    name: Lint Code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Lint Go code
+        run: |
+          cd microservices/streaming-gateway
+          go fmt ./...
+          go vet ./...
+
+      - name: Lint Frontend code
+        run: |
+          cd admin-dashboard
+          npm ci
+          npm run lint
+
+  # ============================================================================
+  # Backend Tests
+  # ============================================================================
+  test-backend:
+    name: Test Backend
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: test_password
+          MYSQL_DATABASE: iptv_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Run database migrations
+        run: |
+          mysql -h 127.0.0.1 -u root -ptest_password iptv_test < migrations/001_initial_schema.sql
+          mysql -h 127.0.0.1 -u root -ptest_password iptv_test < migrations/002_resellers_billing.sql
+          # Add other migrations...
+
+      - name: Run Go tests
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: iptv_test
+          DB_USER: root
+          DB_PASSWORD: test_password
+          REDIS_HOST: 127.0.0.1
+          REDIS_PORT: 6379
+        run: |
+          cd microservices/streaming-gateway
+          go test -v -race -coverprofile=coverage.out ./...
+          go tool cover -html=coverage.out -o coverage.html
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./microservices/streaming-gateway/coverage.out
+
+  # ============================================================================
+  # Frontend Tests
+  # ============================================================================
+  test-frontend:
+    name: Test Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: admin-dashboard/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd admin-dashboard
+          npm ci
+
+      - name: Run tests
+        run: |
+          cd admin-dashboard
+          npm run test -- --coverage
+
+      - name: Build frontend
+        run: |
+          cd admin-dashboard
+          npm run build
+
+  # ============================================================================
+  # API Integration Tests
+  # ============================================================================
+  test-api:
+    name: API Integration Tests
+    runs-on: ubuntu-latest
+    needs: [test-backend]
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: test_password
+          MYSQL_DATABASE: iptv_test
+        ports:
+          - 3306:3306
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Start API server
+        run: |
+          cd microservices/streaming-gateway
+          go build -o streaming-gateway
+          ./streaming-gateway &
+          sleep 5
+
+      - name: Run API tests
+        run: |
+          chmod +x tests/quick-test.sh
+          ./tests/quick-test.sh http://localhost:8080
+
+  # ============================================================================
+  # Security Scanning
+  # ============================================================================
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Run Gosec Security Scanner
+        run: |
+          cd microservices/streaming-gateway
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          gosec ./...
+
+  # ============================================================================
+  # Build Docker Images
+  # ============================================================================
+  build:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    needs: [lint, test-backend, test-frontend, test-api]
+    if: github.event_name == 'push'
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels)
+        id: meta-backend
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha
+
+      - name: Build and push Backend image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./microservices/streaming-gateway
+          push: true
+          tags: ${{ steps.meta-backend.outputs.tags }}
+          labels: ${{ steps.meta-backend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Extract metadata for Frontend
+        id: meta-frontend
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha
+
+      - name: Build and push Frontend image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./admin-dashboard
+          push: true
+          tags: ${{ steps.meta-frontend.outputs.tags }}
+          labels: ${{ steps.meta-frontend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ============================================================================
+  # Deploy to Staging
+  # ============================================================================
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.ref == 'refs/heads/develop'
+    environment:
+      name: staging
+      url: https://staging.iptv.example.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh/
+          echo "${{ secrets.STAGING_SSH_KEY }}" > ~/.ssh/staging
+          chmod 600 ~/.ssh/staging
+          ssh-keyscan ${{ secrets.STAGING_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to Staging
+        run: |
+          ssh -i ~/.ssh/staging ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'EOF'
+            cd /opt/iptv-platform
+            git pull origin develop
+            docker-compose pull
+            docker-compose up -d
+            docker-compose exec -T streaming-gateway /app/scripts/migrate.sh
+          EOF
+
+      - name: Run smoke tests
+        run: |
+          sleep 30
+          ./tests/quick-test.sh https://api-staging.iptv.example.com
+
+  # ============================================================================
+  # Deploy to Production
+  # ============================================================================
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: production
+      url: https://iptv.example.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh/
+          echo "${{ secrets.PRODUCTION_SSH_KEY }}" > ~/.ssh/production
+          chmod 600 ~/.ssh/production
+          ssh-keyscan ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Create backup
+        run: |
+          ssh -i ~/.ssh/production ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
+            /opt/iptv-platform/scripts/backup.sh
+          EOF
+
+      - name: Deploy to Production
+        run: |
+          ssh -i ~/.ssh/production ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
+            cd /opt/iptv-platform
+            git pull origin main
+            docker-compose pull
+            docker-compose up -d --no-deps streaming-gateway admin-dashboard
+            docker-compose exec -T streaming-gateway /app/scripts/migrate.sh
+          EOF
+
+      - name: Run smoke tests
+        run: |
+          sleep 30
+          ./tests/quick-test.sh https://api.iptv.example.com
+
+      - name: Notify deployment
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: 'Production deployment completed'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        if: always()
+
+  # ============================================================================
+  # Performance Tests
+  # ============================================================================
+  performance:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+    needs: [deploy-staging]
+    if: github.ref == 'refs/heads/develop'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install k6
+        run: |
+          curl https://github.com/grafana/k6/releases/download/v0.47.0/k6-v0.47.0-linux-amd64.tar.gz -L | tar xvz
+          sudo cp k6-v0.47.0-linux-amd64/k6 /usr/bin
+
+      - name: Run performance tests
+        run: |
+          k6 run tests/performance/load-test.js
+
+  # ============================================================================
+  # Database Backup
+  # ============================================================================
+  backup:
+    name: Database Backup
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    needs: [deploy-production]
+
+    steps:
+      - name: Trigger backup
+        run: |
+          ssh -i ~/.ssh/production ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
+            /opt/iptv-platform/scripts/backup.sh
+          EOF
+
+      - name: Verify backup
+        run: |
+          ssh -i ~/.ssh/production ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
+            ls -lh /opt/iptv-platform/backups/ | tail -n 5
+          EOF
