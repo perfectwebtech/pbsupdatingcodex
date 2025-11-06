@@ -10,6 +10,13 @@ import Analytics from './pages/Analytics';
 import Sessions from './pages/Sessions';
 import Transcoding from './pages/Transcoding';
 import Settings from './pages/Settings';
+import Reports from './pages/Reports';
+import Resellers from './pages/Resellers';
+import Billing from './pages/Billing';
+import Packages from './pages/Packages';
+import Series from './pages/Series';
+import EPG from './pages/EPG';
+import Devices from './pages/Devices';
 import Layout from './components/Layout';
 import { useEffect } from 'react';
 
@@ -47,9 +54,16 @@ function App() {
                   <Routes>
                     <Route path="/" element={<Dashboard />} />
                     <Route path="/users" element={<Users />} />
+                    <Route path="/resellers" element={<Resellers />} />
                     <Route path="/streams" element={<Streams />} />
                     <Route path="/categories" element={<Categories />} />
+                    <Route path="/series" element={<Series />} />
+                    <Route path="/epg" element={<EPG />} />
+                    <Route path="/devices" element={<Devices />} />
+                    <Route path="/packages" element={<Packages />} />
+                    <Route path="/billing" element={<Billing />} />
                     <Route path="/analytics" element={<Analytics />} />
+                    <Route path="/reports" element={<Reports />} />
                     <Route path="/sessions" element={<Sessions />} />
                     <Route path="/transcoding" element={<Transcoding />} />
                     <Route path="/settings" element={<Settings />} />
