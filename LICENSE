@@ -1,24 +1,89 @@
-This is free and unencumbered software released into the public domain.
+PROPRIETARY SOFTWARE LICENSE AGREEMENT
 
-Anyone is free to copy, modify, publish, use, compile, sell, or
-distribute this software, either in source code form or as a compiled
-binary, for any purpose, commercial or non-commercial, and by any
-means.
+Copyright (c) 2025 IPTV Platform. All rights reserved.
 
-In jurisdictions that recognize copyright laws, the author or authors
-of this software dedicate any and all copyright interest in the
-software to the public domain. We make this dedication for the benefit
-of the public at large and to the detriment of our heirs and
-successors. We intend this dedication to be an overt act of
-relinquishment in perpetuity of all present and future rights to this
-software under copyright law.
+IMPORTANT - READ CAREFULLY: This License Agreement ("Agreement") is a legal agreement
+between you (either an individual or a single entity) and IPTV Platform for the
+software product identified above, which includes computer software and may include
+associated media, printed materials, and "online" or electronic documentation
+("Software Product").
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
-OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
-ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-OTHER DEALINGS IN THE SOFTWARE.
+By installing, copying, or otherwise using the Software Product, you agree to be
+bound by the terms of this Agreement. If you do not agree to the terms of this
+Agreement, do not install or use the Software Product.
 
-For more information, please refer to <http://unlicense.org>
+1. GRANT OF LICENSE
+
+Subject to the terms and conditions of this Agreement and payment of applicable
+license fees, IPTV Platform grants you a limited, non-exclusive, non-transferable
+license to:
+
+   a) Install and use the Software Product on servers owned, leased or controlled
+      by you for the purpose of operating an IPTV streaming service.
+
+   b) Make one copy of the Software Product for backup or archival purposes.
+
+   c) Modify the Software Product for your internal use only, subject to the
+      restrictions in Section 2.
+
+2. RESTRICTIONS
+
+You may NOT:
+
+   a) Distribute, sublicense, rent, lease, or lend the Software Product to any
+      third party.
+
+   b) Remove or alter any proprietary notices, labels, or marks on the Software
+      Product.
+
+   c) Reverse engineer, decompile, or disassemble the Software Product, except
+      to the extent that such activity is expressly permitted by applicable law.
+
+   d) Use the Software Product to provide hosting or managed services to third
+      parties without an Enterprise License.
+
+   e) Use the Software Product for any illegal or unauthorized purpose.
+
+3. LICENSE TYPES
+
+   a) STANDARD LICENSE ($5,000)
+      - Single production deployment
+      - Source code access
+      - 1 year of updates
+      - Community support
+
+   b) PROFESSIONAL LICENSE ($10,000)
+      - Up to 3 production deployments
+      - Source code access
+      - 2 years of updates
+      - Priority email support
+
+   c) ENTERPRISE LICENSE (Contact for pricing)
+      - Unlimited production deployments
+      - Source code access
+      - Lifetime updates
+      - 24/7 dedicated support
+
+4. INTELLECTUAL PROPERTY
+
+The Software Product is protected by copyright laws and international copyright
+treaties. IPTV Platform retains all rights, title, and interest in and to the
+Software Product.
+
+5. WARRANTY DISCLAIMER
+
+THE SOFTWARE PRODUCT IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
+
+6. LIMITATION OF LIABILITY
+
+IN NO EVENT SHALL IPTV PLATFORM BE LIABLE FOR ANY DAMAGES ARISING OUT OF THE
+USE OF OR INABILITY TO USE THE SOFTWARE PRODUCT.
+
+7. CONTACT INFORMATION
+
+For questions about this Agreement or to purchase a license:
+   Email: licensing@iptv.example.com
+   Website: https://iptv.example.com
+
+BY INSTALLING OR USING THE SOFTWARE PRODUCT, YOU ACKNOWLEDGE THAT YOU HAVE READ
+THIS AGREEMENT, UNDERSTAND IT, AND AGREE TO BE BOUND BY ITS TERMS AND CONDITIONS.

@@ -1,0 +1,312 @@
+# ============================================================================
+# IPTV Platform - Prometheus Alert Rules
+# ============================================================================
+
+groups:
+  # ========================================================================
+  # System Alerts
+  # ========================================================================
+  - name: system_alerts
+    interval: 30s
+    rules:
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 10m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High CPU usage detected on {{ $labels.instance }}"
+          description: "CPU usage is above 80% (current: {{ $value }}%)"
+
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 85
+        for: 10m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is above 85% (current: {{ $value }}%)"
+
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes{fstype!~"tmpfs|fuse.lxcfs|squashfs|vfat"} / node_filesystem_size_bytes) * 100 < 10
+        for: 5m
+        labels:
+          severity: critical
+          component: system
+        annotations:
+          summary: "Low disk space on {{ $labels.instance }}"
+          description: "Disk space is below 10% (current: {{ $value }}%)"
+
+  # ========================================================================
+  # Application Alerts
+  # ========================================================================
+  - name: application_alerts
+    interval: 30s
+    rules:
+      - alert: ServiceDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: application
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "{{ $labels.job }} on {{ $labels.instance }} has been down for more than 2 minutes"
+
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          component: application
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is above 5% (current: {{ $value | humanizePercentage }})"
+
+      - alert: SlowResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1
+        for: 10m
+        labels:
+          severity: warning
+          component: application
+        annotations:
+          summary: "Slow response time detected"
+          description: "95th percentile response time is above 1s (current: {{ $value }}s)"
+
+      - alert: HighRequestRate
+        expr: rate(http_requests_total[5m]) > 1000
+        for: 10m
+        labels:
+          severity: warning
+          component: application
+        annotations:
+          summary: "High request rate"
+          description: "Request rate is above 1000 req/s (current: {{ $value }})"
+
+  # ========================================================================
+  # Database Alerts
+  # ========================================================================
+  - name: database_alerts
+    interval: 30s
+    rules:
+      - alert: MySQLDown
+        expr: mysql_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "MySQL is down"
+          description: "MySQL database has been down for more than 1 minute"
+
+      - alert: MySQLTooManyConnections
+        expr: mysql_global_status_threads_connected / mysql_global_variables_max_connections * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "MySQL connection usage is high"
+          description: "MySQL is using more than 80% of max connections (current: {{ $value }}%)"
+
+      - alert: MySQLSlowQueries
+        expr: rate(mysql_global_status_slow_queries[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "High number of slow queries"
+          description: "More than 10 slow queries per second (current: {{ $value }})"
+
+      - alert: MySQLReplicationLag
+        expr: mysql_slave_status_seconds_behind_master > 30
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "MySQL replication lag is high"
+          description: "Replication lag is more than 30 seconds (current: {{ $value }}s)"
+
+  # ========================================================================
+  # Redis Alerts
+  # ========================================================================
+  - name: redis_alerts
+    interval: 30s
+    rules:
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: redis
+        annotations:
+          summary: "Redis is down"
+          description: "Redis has been down for more than 1 minute"
+
+      - alert: RedisMemoryHigh
+        expr: redis_memory_used_bytes / redis_memory_max_bytes * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+          component: redis
+        annotations:
+          summary: "Redis memory usage is high"
+          description: "Redis is using more than 90% of max memory (current: {{ $value }}%)"
+
+      - alert: RedisConnectionsHigh
+        expr: redis_connected_clients > 1000
+        for: 5m
+        labels:
+          severity: warning
+          component: redis
+        annotations:
+          summary: "High number of Redis connections"
+          description: "More than 1000 Redis connections (current: {{ $value }})"
+
+  # ========================================================================
+  # Transcoding Alerts
+  # ========================================================================
+  - name: transcoding_alerts
+    interval: 1m
+    rules:
+      - alert: TranscodingJobsFailed
+        expr: rate(transcoding_jobs_failed_total[10m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: transcoding
+        annotations:
+          summary: "High transcoding failure rate"
+          description: "More than 5 transcoding jobs failing per minute"
+
+      - alert: TranscodingQueueBacklog
+        expr: transcoding_queue_length > 50
+        for: 10m
+        labels:
+          severity: warning
+          component: transcoding
+        annotations:
+          summary: "Large transcoding queue backlog"
+          description: "Transcoding queue has more than 50 jobs (current: {{ $value }})"
+
+      - alert: NoTranscodingWorkers
+        expr: transcoding_active_workers == 0
+        for: 5m
+        labels:
+          severity: critical
+          component: transcoding
+        annotations:
+          summary: "No active transcoding workers"
+          description: "All transcoding workers are down or inactive"
+
+  # ========================================================================
+  # Business Metrics Alerts
+  # ========================================================================
+  - name: business_alerts
+    interval: 5m
+    rules:
+      - alert: LowActiveUsers
+        expr: active_users_count < 10
+        for: 30m
+        labels:
+          severity: info
+          component: business
+        annotations:
+          summary: "Low number of active users"
+          description: "Active users count is below 10 (current: {{ $value }})"
+
+      - alert: HighChurnRate
+        expr: user_churn_rate > 0.1
+        for: 1h
+        labels:
+          severity: warning
+          component: business
+        annotations:
+          summary: "High user churn rate"
+          description: "Churn rate is above 10% (current: {{ $value | humanizePercentage }})"
+
+      - alert: StreamBufferingIssues
+        expr: avg_buffer_ratio > 5
+        for: 15m
+        labels:
+          severity: warning
+          component: streaming
+        annotations:
+          summary: "High average buffering ratio"
+          description: "Average buffer ratio is above 5% (current: {{ $value }}%)"
+
+  # ========================================================================
+  # Security Alerts
+  # ========================================================================
+  - name: security_alerts
+    interval: 1m
+    rules:
+      - alert: HighFailedLoginAttempts
+        expr: rate(login_attempts_failed_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          component: security
+        annotations:
+          summary: "High number of failed login attempts"
+          description: "More than 10 failed logins per minute"
+
+      - alert: SuspiciousAPIActivity
+        expr: rate(api_requests_total{status="401"}[5m]) > 50
+        for: 5m
+        labels:
+          severity: warning
+          component: security
+        annotations:
+          summary: "High number of unauthorized API requests"
+          description: "More than 50 unauthorized requests per minute"
+
+      - alert: RateLimitExceeded
+        expr: rate(rate_limit_exceeded_total[5m]) > 20
+        for: 10m
+        labels:
+          severity: info
+          component: security
+        annotations:
+          summary: "Rate limit frequently exceeded"
+          description: "Rate limit exceeded more than 20 times per minute"
+
+  # ========================================================================
+  # Container Alerts
+  # ========================================================================
+  - name: container_alerts
+    interval: 30s
+    rules:
+      - alert: ContainerKilled
+        expr: changes(container_last_seen[2m]) > 2
+        for: 1m
+        labels:
+          severity: warning
+          component: container
+        annotations:
+          summary: "Container {{ $labels.name }} was killed"
+          description: "Container has been restarted multiple times"
+
+      - alert: ContainerCPUHigh
+        expr: sum(rate(container_cpu_usage_seconds_total[5m])) by (container_label_com_docker_compose_service) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+          component: container
+        annotations:
+          summary: "Container CPU usage is high"
+          description: "Container {{ $labels.container_label_com_docker_compose_service }} CPU usage above 80%"
+
+      - alert: ContainerMemoryHigh
+        expr: (sum(container_memory_usage_bytes) by (container_label_com_docker_compose_service) / sum(container_spec_memory_limit_bytes) by (container_label_com_docker_compose_service) * 100) > 90
+        for: 5m
+        labels:
+          severity: critical
+          component: container
+        annotations:
+          summary: "Container memory usage is very high"
+          description: "Container {{ $labels.container_label_com_docker_compose_service }} memory above 90%"
