@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<widget xmlns="http://www.w3.org/ns/widgets"
+        xmlns:tizen="http://tizen.org/ns/widgets"
+        id="https://iptv.example.com/tizen-app"
+        version="1.0.0"
+        viewmodes="maximized">
+    <tizen:application id="IPTVPlatform.IPTV"
+                      package="IPTVPlatform"
+                      required_version="2.4"/>
+    <name>IPTV Platform</name>
+    <description>Premium IPTV streaming experience for Samsung Smart TV</description>
+    <author email="support@iptv.example.com" href="https://iptv.example.com">IPTV Platform</author>
+    <icon src="icon.png"/>
+    <content src="index.html"/>
+    <feature name="http://tizen.org/feature/screen.size.normal.1080.1920"/>
+    <tizen:profile name="tv"/>
+    <tizen:setting screen-orientation="landscape" context-menu="disable" background-support="disable"/>
+    <tizen:privilege name="http://tizen.org/privilege/internet"/>
+    <tizen:privilege name="http://tizen.org/privilege/tv.audio"/>
+    <tizen:privilege name="http://tizen.org/privilege/tv.channel"/>
+    <tizen:privilege name="http://tizen.org/privilege/tv.display"/>
+    <tizen:privilege name="http://tizen.org/privilege/network.public"/>
+    <tizen:privilege name="http://tizen.org/privilege/mediacontroller.client"/>
+    <tizen:privilege name="http://tizen.org/privilege/drmplay"/>
+    <access origin="*" subdomains="true"/>
+</widget>

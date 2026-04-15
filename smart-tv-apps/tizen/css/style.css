@@ -1,0 +1,300 @@
+/* IPTV Smart TV App Styles - Optimized for 1920x1080 displays */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+html, body {
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    background: #0a0a0a;
+    color: #fff;
+    font-family: 'Roboto', sans-serif;
+    font-size: 18px;
+}
+
+#app {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+/* Top Navigation */
+#topnav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 80px;
+    padding: 0 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+    z-index: 100;
+}
+
+.logo {
+    font-size: 32px;
+    font-weight: 900;
+    color: #e50914;
+    letter-spacing: 4px;
+}
+
+#topnav nav {
+    display: flex;
+    gap: 40px;
+}
+
+.nav-item {
+    color: #ccc;
+    font-size: 20px;
+    text-decoration: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    transition: all 0.3s;
+}
+
+.nav-item:focus,
+.nav-item.active {
+    color: #fff;
+    background: rgba(229, 9, 20, 0.3);
+    outline: 3px solid #e50914;
+}
+
+/* Hero Banner */
+.hero-banner {
+    position: relative;
+    width: 100%;
+    height: 600px;
+    overflow: hidden;
+}
+
+#hero-bg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.6;
+}
+
+.hero-content {
+    position: absolute;
+    bottom: 80px;
+    left: 80px;
+    max-width: 800px;
+}
+
+.hero-content h1 {
+    font-size: 64px;
+    font-weight: 900;
+    margin-bottom: 20px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+}
+
+.hero-content p {
+    font-size: 22px;
+    line-height: 1.5;
+    margin-bottom: 30px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+}
+
+.btn-primary {
+    background: #e50914;
+    color: #fff;
+    border: none;
+    padding: 16px 48px;
+    font-size: 22px;
+    font-weight: bold;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-primary:focus,
+.btn-primary:hover {
+    background: #f40612;
+    transform: scale(1.05);
+    outline: 4px solid #fff;
+}
+
+/* Content Rows */
+.content-row {
+    padding: 30px 60px;
+}
+
+.content-row h2 {
+    font-size: 28px;
+    margin-bottom: 20px;
+    font-weight: 600;
+}
+
+.cards-container {
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 10px 0;
+}
+
+.cards-container::-webkit-scrollbar {
+    display: none;
+}
+
+.content-card {
+    flex-shrink: 0;
+    width: 280px;
+    height: 420px;
+    border-radius: 10px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+    background: #1a1a1a;
+}
+
+.content-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.content-card:focus,
+.content-card:hover {
+    transform: scale(1.1);
+    z-index: 10;
+    outline: 5px solid #e50914;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+}
+
+.card-info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 20px;
+    background: linear-gradient(to top, rgba(0,0,0,0.95), transparent);
+}
+
+.card-info h3 {
+    font-size: 18px;
+    margin-bottom: 5px;
+}
+
+.rating {
+    color: #ffd700;
+    font-size: 14px;
+}
+
+/* Player Overlay */
+#player-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #000;
+    z-index: 1000;
+}
+
+#player-overlay.hidden {
+    display: none;
+}
+
+#video-player {
+    width: 100%;
+    height: 100%;
+}
+
+.player-controls {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 20px 40px;
+    background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+/* Login Screen */
+.login-screen {
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+}
+
+.login-box {
+    background: rgba(0, 0, 0, 0.7);
+    padding: 60px;
+    border-radius: 20px;
+    width: 600px;
+    text-align: center;
+    backdrop-filter: blur(10px);
+}
+
+.login-box h1 {
+    font-size: 42px;
+    margin-bottom: 10px;
+    color: #e50914;
+}
+
+.login-box p {
+    font-size: 18px;
+    color: #ccc;
+    margin-bottom: 30px;
+}
+
+.login-box input {
+    width: 100%;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+    background: rgba(255,255,255,0.1);
+    border: 2px solid transparent;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 18px;
+}
+
+.login-box input:focus {
+    outline: none;
+    border-color: #e50914;
+    background: rgba(255,255,255,0.15);
+}
+
+.login-box button {
+    width: 100%;
+    padding: 16px;
+    background: #e50914;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 20px;
+}
+
+.login-box button:focus {
+    outline: 4px solid #fff;
+    background: #f40612;
+}
+
+.qr-hint {
+    margin-top: 30px;
+    color: #888;
+    font-size: 14px;
+}
+
+/* Focus indicators for TV navigation */
+*:focus {
+    outline: 4px solid #e50914;
+    outline-offset: 2px;
+}

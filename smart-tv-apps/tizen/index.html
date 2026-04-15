@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1920,height=1080">
+    <title>IPTV Platform</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app">
+        <header id="topnav">
+            <div class="logo">IPTV</div>
+            <nav>
+                <a href="#home" class="nav-item active" data-key="49">Home</a>
+                <a href="#live" class="nav-item" data-key="50">Live TV</a>
+                <a href="#movies" class="nav-item" data-key="51">Movies</a>
+                <a href="#series" class="nav-item" data-key="52">Series</a>
+                <a href="#search" class="nav-item" data-key="53">Search</a>
+            </nav>
+            <div class="user-menu">
+                <span id="username"></span>
+            </div>
+        </header>
+
+        <main id="content">
+            <section id="hero" class="hero-banner">
+                <video id="hero-bg" autoplay muted loop></video>
+                <div class="hero-content">
+                    <h1 id="hero-title">Welcome</h1>
+                    <p id="hero-description"></p>
+                    <button class="btn-primary" id="hero-play">Play</button>
+                </div>
+            </section>
+
+            <section class="content-row">
+                <h2>Continue Watching</h2>
+                <div class="cards-container" id="continue-watching"></div>
+            </section>
+
+            <section class="content-row">
+                <h2>Trending Now</h2>
+                <div class="cards-container" id="trending"></div>
+            </section>
+
+            <section class="content-row">
+                <h2>Recommended for You</h2>
+                <div class="cards-container" id="recommended"></div>
+            </section>
+
+            <section class="content-row">
+                <h2>New Releases</h2>
+                <div class="cards-container" id="new-releases"></div>
+            </section>
+        </main>
+
+        <div id="player-overlay" class="hidden">
+            <video id="video-player" controls></video>
+            <div class="player-controls">
+                <button id="player-back">Back</button>
+                <span id="player-title"></span>
+                <button id="player-quality">Quality</button>
+                <button id="player-subtitles">Subtitles</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/remote-control.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
